@@ -32,34 +32,22 @@ services:
       retries: 10
     networks: [mealiver-net]
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: mealiver-zookeeper
-    restart: unless-stopped
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    healthcheck:
-      test: ["CMD", "cub", "zk-ready", "localhost:2181", "5"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks: [mealiver-net]
-
+  # Zookeeper 없이 Kafka 자체가 메타데이터 합의를 처리하는 KRaft 모드 (단일 노드: broker+controller 겸용).
+  # CLUSTER_ID는 이 클러스터를 위해 한 번 생성한 고정값 — 바꾸면 기존 데이터를 못 읽으니 재발급하지 말 것.
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: mealiver-kafka
     restart: unless-stopped
-    depends_on:
-      zookeeper:
-        condition: service_healthy
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      CLUSTER_ID: MgNjdn8tQWaW2zIZNRtfWQ
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:29092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     ports:
@@ -80,7 +68,6 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
-      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     ports:
       - "8082:8080"
     networks: [mealiver-net]
@@ -121,7 +108,7 @@ services:
     networks: [mealiver-net]
 
   # API 이미지는 Mealiver-IT-BE 레포의 CI에서 빌드되어 레지스트리(GHCR 등)에 push된 것을 그대로 pull해서 쓴다.
-  # 이미지가 아직 없다면 `docker compose up -d mysql redis zookeeper kafka kafka-ui prometheus grafana adminer` 로
+  # 이미지가 아직 없다면 `docker compose up -d mysql redis kafka kafka-ui prometheus grafana adminer` 로
   # 인프라만 먼저 띄우고, API는 로컬(IDE/mvnw)에서 직접 실행해도 된다.
   api:
     image: ${API_IMAGE:-ghcr.io/mealiver-it/mealiver-it-be:latest}
