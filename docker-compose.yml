@@ -1,0 +1,145 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mealiver-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-mealiver}
+      MYSQL_USER: ${MYSQL_USER:-mealiver}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mealiver1234}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root1234}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [mealiver-net]
+
+  redis:
+    image: redis:7
+    container_name: mealiver-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [mealiver-net]
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: mealiver-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [mealiver-net]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: mealiver-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [mealiver-net]
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: mealiver-kafka-ui
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    ports:
+      - "8082:8080"
+    networks: [mealiver-net]
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mealiver-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks: [mealiver-net]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mealiver-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks: [mealiver-net]
+
+  adminer:
+    image: adminer:latest
+    container_name: mealiver-adminer
+    depends_on:
+      - mysql
+    ports:
+      - "8081:8080"
+    networks: [mealiver-net]
+
+  # API 이미지는 Mealiver-IT-BE 레포의 CI에서 빌드되어 레지스트리(GHCR 등)에 push된 것을 그대로 pull해서 쓴다.
+  # 이미지가 아직 없다면 `docker compose up -d mysql redis zookeeper kafka kafka-ui prometheus grafana adminer` 로
+  # 인프라만 먼저 띄우고, API는 로컬(IDE/mvnw)에서 직접 실행해도 된다.
+  api:
+    image: ${API_IMAGE:-ghcr.io/uhjin1130/mealiver-it-be:latest}
+    container_name: mealiver-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mealiver}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-mealiver}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-mealiver1234}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8080:8080"
+    networks: [mealiver-net]
+
+volumes:
+  mysql_data:
+  grafana_data:
+
+networks:
+  mealiver-net:
+    driver: bridge
