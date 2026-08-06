@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: mealiver-mysql
+    restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-mealiver}
@@ -21,6 +22,7 @@ services:
   redis:
     image: redis:7
     container_name: mealiver-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -33,13 +35,14 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: mealiver-zookeeper
+    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      test: ["CMD", "cub", "zk-ready", "localhost:2181", "5"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -48,6 +51,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: mealiver-kafka
+    restart: unless-stopped
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -70,6 +74,7 @@ services:
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: mealiver-kafka-ui
+    restart: unless-stopped
     depends_on:
       - kafka
     environment:
@@ -83,6 +88,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: mealiver-prometheus
+    restart: unless-stopped
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
@@ -92,6 +98,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: mealiver-grafana
+    restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -106,6 +113,7 @@ services:
   adminer:
     image: adminer:latest
     container_name: mealiver-adminer
+    restart: unless-stopped
     depends_on:
       - mysql
     ports:
@@ -118,6 +126,7 @@ services:
   api:
     image: ${API_IMAGE:-ghcr.io/mealiver-it/mealiver-it-be:latest}
     container_name: mealiver-api
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
