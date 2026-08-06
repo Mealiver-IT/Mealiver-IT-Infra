@@ -1,0 +1,9 @@
+# GitHub Actions self-hosted runner (installed locally on the server, not part of the repo)
+actions-runner/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
