@@ -116,7 +116,7 @@ services:
   # 이미지가 아직 없다면 `docker compose up -d mysql redis zookeeper kafka kafka-ui prometheus grafana adminer` 로
   # 인프라만 먼저 띄우고, API는 로컬(IDE/mvnw)에서 직접 실행해도 된다.
   api:
-    image: ${API_IMAGE:-ghcr.io/uhjin1130/mealiver-it-be:latest}
+    image: ${API_IMAGE:-ghcr.io/mealiver-it/mealiver-it-be:latest}
     container_name: mealiver-api
     depends_on:
       mysql:
