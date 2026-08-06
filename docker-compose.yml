@@ -145,6 +145,18 @@ services:
       - "8080:8080"
     networks: [mealiver-net]
 
+  # FE 이미지는 Mealiver-IT-FE 레포의 CI에서 빌드되어 GHCR에 push된 nginx 이미지를 그대로 pull해서 쓴다.
+  # nginx가 /api/* 요청을 같은 네트워크의 api 컨테이너로 proxy_pass 하므로 FE 자체는 백엔드 주소를 몰라도 된다.
+  fe:
+    image: ${FE_IMAGE:-ghcr.io/mealiver-it/mealiver-it-fe:latest}
+    container_name: mealiver-fe
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8083:80"
+    networks: [mealiver-net]
+
 volumes:
   mysql_data:
   grafana_data:
