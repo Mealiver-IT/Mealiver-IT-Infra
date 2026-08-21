@@ -3,11 +3,11 @@ services:
     image: mysql:8.0
     container_name: mealiver-mysql
     restart: unless-stopped
-    # 2026-08-20: HikariCP 풀을 110->300으로 올림(재고 샤딩/Tomcat 상향 후 재측정에서도
-    # 커넥션 부족 확인, Prometheus 실측 pending 최대 286). Adminer 등 다른 클라이언트 접속
-    # 여유를 남기기 위해 300이 아니라 400으로 설정 (Mealiver-IT-BE api/application.properties
-    # spring.datasource.hikari.maximum-pool-size와 짝을 맞춰야 함).
-    command: --max-connections=400
+    # 2026-08-21: HikariCP/Tomcat threads.max를 300->600으로 같이 올림(Tomcat MBean 지표
+    # 실측 - 부하테스트 시작 직후 스레드풀이 300까지 포화됨 확인). Adminer 등 다른 클라이언트
+    # 접속 여유를 남기기 위해 600이 아니라 700으로 설정 (Mealiver-IT-BE
+    # api/application.properties spring.datasource.hikari.maximum-pool-size와 짝을 맞춰야 함).
+    command: --max-connections=700
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-mealiver}
