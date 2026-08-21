@@ -6,3 +6,8 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["api:8080"]
+
+  # 2026-08-21: redis_exporter 사이드카가 노출하는 Redis 서버 지표 수집.
+  - job_name: mealiver-redis
+    static_configs:
+      - targets: ["redis-exporter:9121"]

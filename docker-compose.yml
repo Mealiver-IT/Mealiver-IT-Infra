@@ -37,6 +37,22 @@ services:
       retries: 10
     networks: [mealiver-net]
 
+  # 2026-08-21: Redis 서버 자체 지표(메모리/커넥션/초당 명령 처리량 등)를 Prometheus가
+  # 수집하게 하는 사이드카. 앱 쪽(Lettuce 클라이언트) 지표는 이미 잡히고 있었지만
+  # Redis 서버 지표는 전혀 없었음 - 부하테스트 중 Tomcat/HikariCP와 같은 화면에서
+  # Redis 상태도 실시간으로 보기 위해 추가.
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: mealiver-redis-exporter
+    restart: unless-stopped
+    depends_on:
+      - redis
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "9121:9121"
+    networks: [mealiver-net]
+
   # Zookeeper 없이 Kafka 자체가 메타데이터 합의를 처리하는 KRaft 모드 (단일 노드: broker+controller 겸용).
   # CLUSTER_ID는 이 클러스터를 위해 한 번 생성한 고정값 — 바꾸면 기존 데이터를 못 읽으니 재발급하지 말 것.
   kafka:
