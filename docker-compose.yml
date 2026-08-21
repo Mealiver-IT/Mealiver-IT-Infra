@@ -24,6 +24,24 @@ services:
       retries: 10
     networks: [mealiver-net]
 
+  # 2026-08-21: MySQL 내부 지표(Threads_running/connected, InnoDB 행 락 대기 등)를
+  # Prometheus가 수집하게 하는 사이드카 - redis-exporter와 동일한 목적. DATA_SOURCE_NAME은
+  # root가 아니라 전용 모니터링 계정을 쓴다(PROCESS/REPLICATION CLIENT/SELECT만 가능,
+  # 최소 권한). docker-entrypoint-initdb.d는 볼륨이 이미 존재하면 다시 안 돌아가므로,
+  # 이 계정은 기존 mysql_data 볼륨에 한 번 수동으로 만들어줘야 한다 - README/PR 설명 참고.
+  mysql-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: mealiver-mysql-exporter
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_NAME: "${MYSQL_EXPORTER_USER:-exporter}:${MYSQL_EXPORTER_PASSWORD:-exporter1234}@(mysql:3306)/"
+    ports:
+      - "9104:9104"
+    networks: [mealiver-net]
+
   redis:
     image: redis:7
     container_name: mealiver-redis
