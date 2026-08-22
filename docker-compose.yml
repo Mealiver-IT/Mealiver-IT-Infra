@@ -160,6 +160,12 @@ services:
     image: ${API_IMAGE:-ghcr.io/mealiver-it/mealiver-it-be:latest}
     container_name: mealiver-api
     restart: unless-stopped
+    # 2026-08-22: application.properties의 server.tomcat.accept-count=5000이 실제로는
+    # min(net.core.somaxconn, accept-count)로 캡핑되고 있었음 - 컨테이너 기본 somaxconn(4096)
+    # 확인(docker exec mealiver-api cat /proc/sys/net/core/somaxconn)으로 실측. accept-count와
+    # 같은 값으로 맞춰서 의도한 백로그 크기가 그대로 적용되게 한다.
+    sysctls:
+      - net.core.somaxconn=5000
     depends_on:
       mysql:
         condition: service_healthy
