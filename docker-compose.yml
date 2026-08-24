@@ -166,12 +166,12 @@ services:
     # 같은 값으로 맞춰서 의도한 백로그 크기가 그대로 적용되게 한다.
     sysctls:
       - net.core.somaxconn=5000
+    # 2026-08-24: kafka는 실제로 안 쓰고 있어서 서버에서 내림 - api가 kafka health를
+    # depends_on으로 기다리게 두면 kafka 없이는 재기동/재배포 자체가 안 되므로 같이 제거.
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-mealiver}
