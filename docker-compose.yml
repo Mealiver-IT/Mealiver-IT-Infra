@@ -139,6 +139,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-mealiver1234}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      # 2026-08-24: 정합성 검증 리포트(SlackNotifier)가 요구하는 필수 플레이스홀더 -
+      # 값이 없으면 PlaceholderResolutionException으로 앱이 아예 기동 실패한다(실측).
+      # 기본값을 빈 문자열로 둬서 .env에 값이 없어도 최소한 기동은 되게 한다.
+      SLACK_CONSISTENCY_WEBHOOK_URL: ${SLACK_CONSISTENCY_WEBHOOK_URL:-}
     ports:
       - "8080:8080"
     networks: [mealiver-net]

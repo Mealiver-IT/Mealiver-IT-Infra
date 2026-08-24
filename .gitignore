@@ -1,6 +1,9 @@
 # GitHub Actions self-hosted runner (installed locally on the server, not part of the repo)
 actions-runner/
 
+# 비밀값 (Slack 웹훅, DB 비밀번호 등) - docker-compose.yml이 ${VAR} 치환으로 읽음
+.env
+
 # IDE
 .idea/
 
