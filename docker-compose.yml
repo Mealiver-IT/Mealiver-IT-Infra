@@ -13,6 +13,11 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-mealiver}
       MYSQL_USER: ${MYSQL_USER:-mealiver}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-mealiver1234}
+      # 2026-08-26: 컨테이너 기본 타임존이 UTC라(TZ 미설정), NOW()/CURRENT_TIMESTAMP 등이
+      # 한국 시간보다 9시간 느리게 나왔다(api 서비스도 같은 이유로 TZ 추가 - 아래 참고).
+      # 기존에 이미 UTC로 쌓인 데이터는 그대로 두고(별도 마이그레이션 필요), 이 값 이후
+      # 새로 쓰이는 시각부터 정상화한다.
+      TZ: Asia/Seoul
     ports:
       - "3306:3306"
     volumes:
@@ -156,6 +161,11 @@ services:
       # 의존한다(ConsistencyVerificationJobConfig) - 꺼져있으면 컨트롤러는 뜨되 503으로 막힌다.
       # 로컬에서는 되던 게 공유 서버에서는 이 값이 없어 막혔었다(요청으로 추가).
       APP_CONSISTENCY_VERIFICATION_ENABLED: ${APP_CONSISTENCY_VERIFICATION_ENABLED:-true}
+      # 2026-08-26: JVM 기본 타임존이 UTC라(베이스 이미지에 TZ 미설정) LocalDateTime.now()가
+      # 한국 시간보다 9시간 느린 값을 반환 - DATETIME 컬럼(타임존 정보 없이 값 그대로 저장)에
+      # 그 값이 그대로 박혀서 이상하게 보이던 문제. 신규 데이터부터 정상화하고, 기존에 이미
+      # UTC로 쌓인 데이터 보정은 별도로 처리한다.
+      TZ: Asia/Seoul
     ports:
       - "8080:8080"
     networks: [mealiver-net]
