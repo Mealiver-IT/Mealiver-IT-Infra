@@ -143,6 +143,15 @@ services:
       # 값이 없으면 PlaceholderResolutionException으로 앱이 아예 기동 실패한다(실측).
       # 기본값을 빈 문자열로 둬서 .env에 값이 없어도 최소한 기동은 되게 한다.
       SLACK_CONSISTENCY_WEBHOOK_URL: ${SLACK_CONSISTENCY_WEBHOOK_URL:-}
+      # 2026-08-26: 위와 같은 이유로 NotionReportGenerator(정합성 검증 리포트를 Notion 페이지로
+      # 발행)도 필수 플레이스홀더라, notion.api.token/notion.database-id 값이 없으면
+      # PlaceholderResolutionException으로 앱이 통째로 기동 실패한다(실측 - api 컨테이너가
+      # 아예 안 뜸). fix/verification PR(#162, Mealiver-IT-BE)이 이 값을 추가했는데 여기
+      # 반영이 안 돼서 실제로 장애가 났다. 빈 문자열로 최소 기동은 되게 하고, 실제 Notion
+      # 연동이 필요하면 .env에 NOTION_API_TOKEN/NOTION_DATABASE_ID를 채워 넣으면 된다
+      # (값이 비어있으면 검증 배치의 Notion 리포트 생성 단계만 실패하고 나머지 API는 정상 동작).
+      NOTION_API_TOKEN: ${NOTION_API_TOKEN:-}
+      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID:-}
     ports:
       - "8080:8080"
     networks: [mealiver-net]
