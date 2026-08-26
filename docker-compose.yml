@@ -152,6 +152,10 @@ services:
       # (값이 비어있으면 검증 배치의 Notion 리포트 생성 단계만 실패하고 나머지 API는 정상 동작).
       NOTION_API_TOKEN: ${NOTION_API_TOKEN:-}
       NOTION_DATABASE_ID: ${NOTION_DATABASE_ID:-}
+      # 2026-08-26: 관리자 대시보드의 "지금 검증 실행" 버튼이 이 플래그로 켜지는 Job Bean에
+      # 의존한다(ConsistencyVerificationJobConfig) - 꺼져있으면 컨트롤러는 뜨되 503으로 막힌다.
+      # 로컬에서는 되던 게 공유 서버에서는 이 값이 없어 막혔었다(요청으로 추가).
+      APP_CONSISTENCY_VERIFICATION_ENABLED: ${APP_CONSISTENCY_VERIFICATION_ENABLED:-true}
     ports:
       - "8080:8080"
     networks: [mealiver-net]
